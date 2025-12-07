@@ -17,6 +17,7 @@ Agent Flags (at least one required):
   --codex           ~/.codex/prompts/ (global, ignores project path for commands)
   --droid           .factory/commands/ + .factory/skills/
   --copilot         .github/prompts/
+  --cursor          .cursor/commands/
   --cad             .agent/skills + .agents/commands (Claude Agent Desktop / pi-coding-agent)
   --all             All of the above
 
@@ -44,6 +45,7 @@ DO_OPENCODE=false
 DO_CODEX=false
 DO_DROID=false
 DO_COPILOT=false
+DO_CURSOR=false
 DO_CAD=false
 
 while [[ $# -gt 0 ]]; do
@@ -53,6 +55,7 @@ while [[ $# -gt 0 ]]; do
     --codex)     DO_CODEX=true; shift ;;
     --droid)     DO_DROID=true; shift ;;
     --copilot)   DO_COPILOT=true; shift ;;
+    --cursor)    DO_CURSOR=true; shift ;;
     --cad)       DO_CAD=true; shift ;;
     --all)
       DO_CLAUDE=true
@@ -60,6 +63,7 @@ while [[ $# -gt 0 ]]; do
       DO_CODEX=true
       DO_DROID=true
       DO_COPILOT=true
+      DO_CURSOR=true
       DO_CAD=true
       shift
       ;;
@@ -97,7 +101,7 @@ if [[ -z "${TARGET}" ]]; then
   exit 1
 fi
 
-if ! $DO_CLAUDE && ! $DO_OPENCODE && ! $DO_CODEX && ! $DO_DROID && ! $DO_COPILOT && ! $DO_CAD; then
+if ! $DO_CLAUDE && ! $DO_OPENCODE && ! $DO_CODEX && ! $DO_DROID && ! $DO_COPILOT && ! $DO_CURSOR && ! $DO_CAD; then
   echo "Error: at least one agent flag is required (--claude, --droid, etc.)" >&2
   usage
   exit 1
@@ -214,6 +218,16 @@ if $DO_COPILOT; then
   else
     echo "GitHub Copilot:"
     sync_commands_flat "${TARGET_DIR}/.github/prompts" ".prompt"
+  fi
+fi
+
+# Cursor: .cursor/commands/
+if $DO_CURSOR; then
+  if $SKILLS_ONLY; then
+    echo "Cursor: skipped (no skills support)"
+  else
+    echo "Cursor:"
+    sync_commands "${TARGET_DIR}/.cursor/commands"
   fi
 fi
 

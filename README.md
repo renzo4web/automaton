@@ -31,6 +31,7 @@ automaton/
 | Codex CLI | `--codex` | `~/.codex/prompts/` (global) |
 | Droid CLI | `--droid` | `.factory/commands/` + `.factory/skills/` |
 | GitHub Copilot | `--copilot` | `.github/prompts/` |
+| Cursor | `--cursor` | `.cursor/commands/` |
 | CAD / pi-coding-agent | `--cad` | `.agent/skills/` + `.agents/commands/` |
 
 ## Usage
