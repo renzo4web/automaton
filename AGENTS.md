@@ -49,24 +49,3 @@ Usage notes:
 <!-- SKILLS_TABLE_END -->
 
 </skills_system>
-
-You have access to kit-dev-mcp server with powerful code intelligence tools.
-
-MANDATORY WORKFLOW for code tasks:
-1. open_repository(path) - Load the codebase
-2. get_file_tree() - Understand structure
-3. extract_symbols() - Analyze code (cached)
-4. For new libraries: deep_research_package()
-
-TOOL DESCRIPTIONS:
-- open_repository: Opens local/remote repositories
-- get_file_tree: Shows project structure
-- extract_symbols: Fast symbol extraction with caching
-- get_file_content_multi: Read multiple files at once
-- search_text: Powerful regex search
-- find_symbol_usages: Find where symbols are used
-- get_dependency_graph: Map import relationships
-- deep_research_package: Research from multiple documentation sources
-
-Always use these tools proactively. Don't wait to be asked.
-Better context = Better code.

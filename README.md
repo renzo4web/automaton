@@ -82,16 +82,6 @@ cp templates/skill-template.md .automaton/skills/my-skill/SKILL.md
 
 ## Tooling
 
-### kit-dev-mcp
-
-Fast repository indexing, symbol lookup, and dependency graphs:
-
-```bash
-uv tool install --from cased-kit kit-dev-mcp
-```
-
-Docs: https://kit-mcp.cased.com/docs
-
 ### beads
 
 Issue tracking for AI agents: https://github.com/steveyegge/beads
