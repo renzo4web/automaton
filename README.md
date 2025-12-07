@@ -1,86 +1,100 @@
-# My Agent Automations
+# Automaton
 
-A simple collection of skills and slash-commands for AI agents.
-
----
+Central repo for AI coding agent commands and skills. Sync them to any project with a single command.
 
 ## Structure
 
 ```
 automaton/
-├── .agent/
-│   └── skills/               # Complex behaviors (used by the agent runtime)
-│       └── skill-name/
-│           └── SKILL.md
-├── slash-commands/           # Quick commands (run after changes)
-│   └── command-name.md
-└── templates/                # Copy these to create new ones
+├── .agents/
+│   ├── commands/         # Slash commands (markdown)
+│   └── skills/           # Complex behaviors (for openskills)
+├── sync.sh               # Sync to any project
+└── templates/            # Templates for new commands/skills
 ```
 
----
+## Quick Start
 
-## How Slash Commands Work
+```bash
+# Sync to a project for your preferred agent
+./sync.sh --claude ~/code/my-project
+./sync.sh --droid ~/code/my-project
+./sync.sh --all ~/code/my-project
+```
 
-Slash commands are designed to run **after you make changes**.
-They automatically check `git status` and `git diff` to work on your recent modifications.
+## Supported Agents
 
-Example: You implement a feature, then run `/refactor` to clean it up.
+| Agent | Flag | Target Directory |
+|-------|------|------------------|
+| Claude Code | `--claude` | `.claude/commands/` + `.claude/skills/` |
+| OpenCode | `--opencode` | `.opencode/command/` |
+| Codex CLI | `--codex` | `~/.codex/prompts/` (global) |
+| Droid CLI | `--droid` | `.factory/commands/` + `.factory/skills/` |
+| GitHub Copilot | `--copilot` | `.github/prompts/` |
+| CAD / pi-coding-agent | `--cad` | `.agent/skills/` + `.agents/commands/` |
 
----
+## Usage
+
+```bash
+# Single agent
+./sync.sh --claude ~/code/my-project
+
+# Multiple agents
+./sync.sh --claude --droid --opencode ~/code/my-project
+
+# All agents at once
+./sync.sh --all ~/code/my-project
+
+# Copy files instead of symlink (for repos you'll share)
+./sync.sh --claude --mode mirror ~/code/my-project
+
+# Only sync commands or skills
+./sync.sh --cad --commands-only ~/code/my-project
+./sync.sh --cad --skills-only ~/code/my-project
+```
+
+## Available Commands & Skills
+
+| Type | Name | Description |
+|------|------|-------------|
+| skill | `code-reviewer` | Review code for quality and bugs |
+| skill | `programming-ruby` | Ruby best practices |
+| skill | `programming-rails` | Rails best practices |
+| skill | `inertia-rails` | Inertia.js + Rails + React |
+| command | `/remove-slop` | Remove AI-generated code slop |
+| command | `/check-react-state` | Review React state vs derived values |
+
+## Create New
+
+### New Command
+```bash
+cp templates/slash-command-template.md .automaton/commands/my-command.md
+# Edit the file, then sync to your projects
+```
+
+### New Skill
+```bash
+mkdir -p .automaton/skills/my-skill
+cp templates/skill-template.md .automaton/skills/my-skill/SKILL.md
+# For CAD users: run `openskills sync` in the target project
+```
 
 ## Tooling
 
 ### kit-dev-mcp
 
-Install Kit's `kit-dev-mcp` server to give your agent fast repository indexing, symbol lookup, dependency graphs, and deep documentation search—all running locally.
+Fast repository indexing, symbol lookup, and dependency graphs:
 
 ```bash
 uv tool install --from cased-kit kit-dev-mcp
 ```
 
-Configuration varies by agent platform (Cursor, Claude Code, VS Code, etc.), so follow the official guide: https://kit-mcp.cased.com/docs
+Docs: https://kit-mcp.cased.com/docs
 
----
+### beads
 
-## Available
+Issue tracking for AI agents: https://github.com/steveyegge/beads
 
-| Type | Name | Description |
-|------|------|-------------|
-| skill | code-reviewer | Review code for quality and bugs |
-| command | /refactor | Refactor recent changes |
-| command | /commit | Write commit message for changes |
-| command | /remove-slop | Remove AI-generated code slop |
-| command | /check-react-state | Review React state vs derived values |
-
----
-
-## Create New
-
-### New Skill
 ```bash
-mkdir -p .agent/skills/my-skill
-cp templates/skill-template.md .agent/skills/my-skill/SKILL.md
-openskills sync
-```
-
-Every time you add or modify a skill, run `openskills sync` so the agent discovers the new capabilities.
-
-### New Command
-```bash
-cp templates/slash-command-template.md slash-commands/my-command.md
-```
-
----
-
-## Use in Projects
-
-### Simple: Symlinks
-```bash
-ln -s /path/to/automaton/skills/code-reviewer .claude/skills/code-reviewer
-ln -s /path/to/automaton/slash-commands/refactor.md .claude/slash-commands/refactor.md
-```
-
-### Or: Git Submodule
-```bash
-git submodule add https://github.com/USER/automaton.git .commands
+bd quickstart  # Interactive guide
 ```

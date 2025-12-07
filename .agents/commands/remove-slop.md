@@ -1,6 +1,7 @@
 ---
 name: "/remove-slop"
 description: "Remove AI-generated code slop from recent changes"
+agent: agent
 ---
 
 # Context

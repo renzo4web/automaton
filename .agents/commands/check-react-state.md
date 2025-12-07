@@ -1,6 +1,7 @@
 ---
 name: "/check-react-state"
 description: "Review React state management and find opportunities to derive values"
+agent: agent
 ---
 
 # Context
