@@ -5,11 +5,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_SRC="${SCRIPT_DIR}/.agents/skills"
 COMMANDS_SRC="${SCRIPT_DIR}/.agents/commands"
 
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
 usage() {
   cat <<'EOF'
 Usage: sync.sh [OPTIONS] /path/to/project
 
 Sync automaton commands/skills to a project for your preferred AI coding agent.
+Files are COPIED (not symlinked) so you can customize them locally.
 
 Agent Flags (at least one required):
   --claude          .claude/commands/ + .claude/skills/
@@ -22,7 +29,8 @@ Agent Flags (at least one required):
   --all             All of the above
 
 Options:
-  --mode MODE       symlink (default) or mirror
+  --force           Overwrite files even if they have local modifications
+  --no-pull         Skip git pull (don't update automaton before syncing)
   --skills-only     Only sync skills (where applicable)
   --commands-only   Only sync commands
   -h, --help        Show this message
@@ -30,14 +38,17 @@ Options:
 Examples:
   sync.sh --claude ~/code/my-app
   sync.sh --droid --opencode ~/code/my-app
-  sync.sh --all --mode mirror ~/code/my-app
+  sync.sh --all ~/code/my-app
+  sync.sh --cad --force ~/code/my-app    # Overwrite local modifications
 EOF
 }
 
-MODE="symlink"
 TARGET=""
+FORCE=false
+NO_PULL=false
 SKILLS_ONLY=false
 COMMANDS_ONLY=false
+SKIPPED_FILES=()
 
 # Agent flags
 DO_CLAUDE=false
@@ -67,9 +78,13 @@ while [[ $# -gt 0 ]]; do
       DO_CAD=true
       shift
       ;;
-    --mode)
-      MODE="${2:-symlink}"
-      shift 2
+    --force)
+      FORCE=true
+      shift
+      ;;
+    --no-pull)
+      NO_PULL=true
+      shift
       ;;
     --skills-only)
       SKILLS_ONLY=true
@@ -107,74 +122,96 @@ if ! $DO_CLAUDE && ! $DO_OPENCODE && ! $DO_CODEX && ! $DO_DROID && ! $DO_COPILOT
   exit 1
 fi
 
-if [[ "${MODE}" != "symlink" && "${MODE}" != "mirror" ]]; then
-  echo "Error: --mode must be 'symlink' or 'mirror'." >&2
+# Resolve target path
+if [[ ! -d "${TARGET}" ]]; then
+  echo "Error: target directory does not exist: ${TARGET}" >&2
   exit 1
 fi
-
 TARGET_DIR="$(cd "${TARGET}" && pwd)"
 
-# Sync functions
-sync_link() {
-  local src="$1" dest="$2"
-  mkdir -p "$(dirname "${dest}")"
-  ln -sfn "${src}" "${dest}"
-  echo "  ✓ ${dest} -> ${src}"
-}
-
-sync_mirror() {
-  local src="$1" dest="$2"
-  mkdir -p "${dest}"
-  rsync -a --delete "${src}/" "${dest}/"
-  echo "  ✓ ${dest} (mirrored)"
-}
-
-do_sync() {
-  local src="$1" dest="$2"
-  if [[ "${MODE}" == "symlink" ]]; then
-    sync_link "${src}" "${dest}"
+# Update automaton repo
+if ! $NO_PULL; then
+  echo "Updating automaton..."
+  if git -C "${SCRIPT_DIR}" pull --quiet 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} automaton updated"
   else
-    sync_mirror "${src}" "${dest}"
+    echo -e "${YELLOW}⚠${NC} Could not update automaton (offline or not a git repo)"
+  fi
+  echo ""
+fi
+
+# Copy a single file with conflict detection
+copy_file() {
+  local src="$1"
+  local dest="$2"
+  local dest_dir="$(dirname "${dest}")"
+  
+  mkdir -p "${dest_dir}"
+  
+  if [[ ! -e "${dest}" ]]; then
+    # File doesn't exist - copy it
+    cp "${src}" "${dest}"
+    echo -e "  ${GREEN}✓${NC} ${dest} (copied)"
+  elif cmp -s "${src}" "${dest}"; then
+    # File exists and is identical - skip
+    echo -e "  ${GREEN}✓${NC} ${dest} (up to date)"
+  elif $FORCE; then
+    # File exists and is different, but --force is set
+    cp "${src}" "${dest}"
+    echo -e "  ${YELLOW}✓${NC} ${dest} (overwritten)"
+  else
+    # File exists and is different - skip and warn
+    echo -e "  ${RED}✗${NC} ${dest} (local modifications, skipped)"
+    SKIPPED_FILES+=("${dest}")
   fi
 }
 
-# Sync commands to a destination (symlinks/copies the folder)
+# Copy all files from a source directory to destination
+copy_dir() {
+  local src_dir="$1"
+  local dest_dir="$2"
+  
+  if [[ ! -d "${src_dir}" ]]; then
+    return
+  fi
+  
+  # Find all files recursively
+  while IFS= read -r -d '' file; do
+    local rel_path="${file#${src_dir}/}"
+    local dest_file="${dest_dir}/${rel_path}"
+    copy_file "${file}" "${dest_file}"
+  done < <(find "${src_dir}" -type f -print0)
+}
+
+# Sync commands to a destination
 sync_commands() {
   local dest="$1"
   $SKILLS_ONLY && return
-  do_sync "${COMMANDS_SRC}" "${dest}"
+  copy_dir "${COMMANDS_SRC}" "${dest}"
 }
 
-# Sync command files individually to a destination (for agents that want flat files)
-# Optional second arg: suffix to add before .md (e.g., ".prompt" -> file.prompt.md)
+# Sync command files with custom suffix (for agents like Copilot)
 sync_commands_flat() {
   local dest="$1"
   local suffix="${2:-}"
   $SKILLS_ONLY && return
-  mkdir -p "${dest}"
+  
   for file in "${COMMANDS_SRC}"/*.md; do
     [[ -e "${file}" ]] || continue
     local basename="$(basename "${file}" .md)"
     local filename="${basename}${suffix}.md"
-    if [[ "${MODE}" == "symlink" ]]; then
-      ln -sfn "${file}" "${dest}/${filename}"
-      echo "  ✓ ${dest}/${filename} -> ${file}"
-    else
-      cp "${file}" "${dest}/${filename}"
-      echo "  ✓ ${dest}/${filename} (copied)"
-    fi
+    copy_file "${file}" "${dest}/${filename}"
   done
 }
 
-# Sync skills to a destination  
+# Sync skills to a destination
 sync_skills() {
   local dest="$1"
   $COMMANDS_ONLY && return
-  do_sync "${SKILLS_SRC}" "${dest}"
+  copy_dir "${SKILLS_SRC}" "${dest}"
 }
 
 echo "Syncing automaton to: ${TARGET_DIR}"
-echo "Mode: ${MODE}"
 echo ""
 
 # Claude Code: .claude/commands/ + .claude/skills/
@@ -239,4 +276,12 @@ if $DO_CAD; then
 fi
 
 echo ""
-echo "Done! 🚀"
+
+# Show summary
+if [[ ${#SKIPPED_FILES[@]} -gt 0 ]]; then
+  echo -e "${YELLOW}Warning:${NC} ${#SKIPPED_FILES[@]} file(s) were skipped due to local modifications."
+  echo "Run with --force to overwrite them."
+  exit 1
+else
+  echo -e "${GREEN}Done!${NC} 🚀"
+fi

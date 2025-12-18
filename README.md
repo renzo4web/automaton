@@ -2,25 +2,35 @@
 
 Central repo for AI coding agent commands and skills. Sync them to any project with a single command.
 
-## Structure
-
-```
-automaton/
-├── .agents/
-│   ├── commands/         # Slash commands (markdown)
-│   └── skills/           # Complex behaviors (for openskills)
-├── sync.sh               # Sync to any project
-└── templates/            # Templates for new commands/skills
-```
-
 ## Quick Start
 
 ```bash
-# Sync to a project for your preferred agent
-./sync.sh --claude ~/code/my-project
-./sync.sh --droid ~/code/my-project
-./sync.sh --all ~/code/my-project
+# 1. Clone automaton (once, anywhere on your machine)
+git clone https://github.com/renzo4web/automaton ~/automaton
+
+# 2. Sync to your project
+~/automaton/sync.sh --cad ~/code/my-project
 ```
+
+That's it! Files are **copied** to your project, so you can customize them.
+
+## How It Works
+
+1. `sync.sh` pulls the latest changes from this repo
+2. Copies commands/skills to your project's agent directories
+3. Detects local modifications and warns you (won't overwrite by default)
+
+## Updating
+
+Just run `sync.sh` again:
+
+```bash
+~/automaton/sync.sh --cad ~/code/my-project
+```
+
+- New files → copied
+- Unchanged files → skipped
+- Modified files → skipped (use `--force` to overwrite)
 
 ## Supported Agents
 
@@ -38,20 +48,23 @@ automaton/
 
 ```bash
 # Single agent
-./sync.sh --claude ~/code/my-project
+~/automaton/sync.sh --claude ~/code/my-project
 
 # Multiple agents
-./sync.sh --claude --droid --opencode ~/code/my-project
+~/automaton/sync.sh --claude --droid --opencode ~/code/my-project
 
 # All agents at once
-./sync.sh --all ~/code/my-project
+~/automaton/sync.sh --all ~/code/my-project
 
-# Copy files instead of symlink (for repos you'll share)
-./sync.sh --claude --mode mirror ~/code/my-project
+# Overwrite local modifications
+~/automaton/sync.sh --cad --force ~/code/my-project
+
+# Skip git pull (use local version as-is)
+~/automaton/sync.sh --cad --no-pull ~/code/my-project
 
 # Only sync commands or skills
-./sync.sh --cad --commands-only ~/code/my-project
-./sync.sh --cad --skills-only ~/code/my-project
+~/automaton/sync.sh --cad --commands-only ~/code/my-project
+~/automaton/sync.sh --cad --skills-only ~/code/my-project
 ```
 
 ## Available Commands & Skills
@@ -65,18 +78,37 @@ automaton/
 | command | `/remove-slop` | Remove AI-generated code slop |
 | command | `/check-react-state` | Review React state vs derived values |
 
+## Customization
+
+Files are copied (not linked), so you can:
+
+- Edit any command/skill to fit your project's needs
+- Delete commands/skills you don't need
+- Your changes won't be overwritten unless you use `--force`
+
+## Project Structure
+
+```
+automaton/
+├── .agents/
+│   ├── commands/         # Slash commands (markdown)
+│   └── skills/           # Complex behaviors (for openskills)
+├── sync.sh               # Sync script
+└── templates/            # Templates for new commands/skills
+```
+
 ## Create New
 
 ### New Command
 ```bash
-cp templates/slash-command-template.md .automaton/commands/my-command.md
+cp templates/slash-command-template.md .agents/commands/my-command.md
 # Edit the file, then sync to your projects
 ```
 
 ### New Skill
 ```bash
-mkdir -p .automaton/skills/my-skill
-cp templates/skill-template.md .automaton/skills/my-skill/SKILL.md
+mkdir -p .agents/skills/my-skill
+cp templates/skill-template.md .agents/skills/my-skill/SKILL.md
 # For CAD users: run `openskills sync` in the target project
 ```
 
